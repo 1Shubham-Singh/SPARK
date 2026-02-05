@@ -1,0 +1,53 @@
+Requirement:
+1.We have colleced fire calls data file sf-fire-calls.csv.
+2.Read the data file
+3.Load it into a table for analysis
+4.Verify all 175296 records are loaded correctly
+5.The table is predefined as below
+
+%sql
+
+CREATE TABLE IF NOT EXISTS dev.spark_db.sf_fire_calls (
+  CallNumber INT, UnitID STRING, IncidentNumber INT, CallType STRING, CallDate DATE,
+  WatchDate DATE, CallFinalDisposition STRING, AvailableDtTm TIMESTAMP, Address STRING,
+  City STRING, Zipcode STRING, Battalion STRING, StationArea STRING, Box STRING,
+  OriginalPriority STRING, Priority STRING, FinalPriority STRING, ALSUnit BOOLEAN,
+  CallTypeGroup STRING, NumAlarms INT, UnitType STRING, UnitSequenceInCallDispatch INT,
+  FirePreventionDistrict STRING, SupervisorDistrict STRING, Neighborhood STRING,
+  Location STRING, RowID STRING, Delay DOUBLE);
+
+1.Check the data file structure.
+2.Read the data file and create a dataframe
+
+raw_fire_df = (
+    spark.read.format("csv")
+        .option("header", "true")
+        .option("inferSchema", "true")
+        .load("/Volumes/dev/spark_db/datasets/spark_programming/data/sf-fire-calls.csv")
+)
+
+1.Count the records(count)
+2.Check the dataframe for potential problems (display/show)
+3.Verify dataframe schema with the target table (printSchema)
+4.Transform the dataframe to match target table structure (withColumns, to_date, to_timestamp, cast)
+
+raw_fire_df.count()
+raw_fire_df.display()
+raw_fire_df.printSchema()
+
+
+from pyspark.sql.functions import to_timestamp, expr
+
+fire_df = raw_fire_df.withColumns({
+        "AvailableDtTm": to_timestamp("AvailableDtTm", "MM/dd/yyyy hh:mm:ss a"),
+        "Zipcode": expr("cast(Zipcode as string)"),
+        "FinalPriority": expr("cast(FinalPriority as string)")
+    })
+
+7.Save the final dataframe into target table
+
+fire_df.write.mode("overwrite").saveAsTable("dev.spark_db.sf_fire_calls")
+
+8.Verify the table count
+select count(*) from dev.spark_db.sf_fire_calls
+
